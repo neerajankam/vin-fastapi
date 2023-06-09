@@ -8,7 +8,11 @@ db_session = DatabaseConnection()
 
 
 class Vin(Base):
-    __tablename__ = 'vins'
+    """
+    Represents the VIN table in the database.
+    """
+
+    __tablename__ = "vins"
 
     id = Column(Integer, autoincrement=True)
     vin = Column(String(17), primary_key=True)

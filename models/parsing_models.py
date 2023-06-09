@@ -1,11 +1,8 @@
 from pydantic import BaseModel
 
 
-class VinRequest(BaseModel):
-    vin: str
-
 class VinResponse(BaseModel):
-    vin: str
+    input_vin_requested: str
     make: str
     model: str
     year: str

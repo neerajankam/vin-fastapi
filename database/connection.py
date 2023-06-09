@@ -1,21 +1,44 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from alembic import op
 
 
-DATABASE_PATH = "sqlite:////Users/neerajankam/Desktop/koffie_labs_challenge/data/vins_database.db"
+HERE = os.path.dirname(os.path.abspath(__file__))
+DATABASE_NAME = "vins_database.db"
+DATABASE_PATH = os.path.join(HERE, "..", "data")
+DATABASE_URL = f"sqlite:///{DATABASE_PATH}/{DATABASE_NAME}"
 
 
 class DatabaseConnection:
-	__instance = None
-	__engine = None
-	def __new__(cls):
-		if cls.__instance is None:
-			cls.__engine = create_engine(DATABASE_PATH)
-			session = sessionmaker(bind=cls.__engine)
-			cls.__instance = session()
-		return cls.__instance
+    """
+    Singleton class for managing the database connection.
 
-	@staticmethod
-	def get_engine():
-		return DatabaseConnection.__engine
+    Provides methods to get the database engine and a session object.
+    """
+
+    __instance = None
+    __engine = None
+
+    def __new__(cls) -> "DatabaseConnection":
+        """
+        Creates a new instance of the DatabaseConnection class.
+
+        :return: The DatabaseConnection instance.
+        :rtype: DatabaseConnection
+        """
+        if cls.__instance is None:
+            cls.__engine = create_engine(DATABASE_URL)
+            session = sessionmaker(bind=cls.__engine)
+            cls.__instance = session()
+        return cls.__instance
+
+    @staticmethod
+    def get_engine() -> "Engine":
+        """
+        Retrieves the database engine.
+
+        :return: The database engine.
+        :rtype: Engine
+        """
+        return DatabaseConnection.__engine
