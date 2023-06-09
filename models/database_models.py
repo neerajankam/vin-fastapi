@@ -1,0 +1,19 @@
+from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy.ext.declarative import declarative_base
+from database.connection import DatabaseConnection
+
+
+Base = declarative_base()
+db_session = DatabaseConnection()
+
+
+class Vin(Base):
+    __tablename__ = 'vins'
+
+    id = Column(Integer, autoincrement=True)
+    vin = Column(String(17), primary_key=True)
+    vehicle_details = Column(Text(255))
+
+
+# Create the tables
+Base.metadata.create_all(bind=DatabaseConnection.get_engine())
