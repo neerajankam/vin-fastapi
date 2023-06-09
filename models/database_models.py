@@ -14,7 +14,6 @@ class Vin(Base):
 
     __tablename__ = "vins"
 
-    id = Column(Integer, autoincrement=True)
     vin = Column(String(17), primary_key=True)
     vehicle_details = Column(Text(255))
 

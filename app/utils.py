@@ -1,4 +1,3 @@
-import json
 from typing import Any, Dict, List
 
 from models.parsing_models import VinResponse
@@ -19,7 +18,8 @@ def parse_response(vehicle_object: List[Dict[str, Any]]) -> Dict[str, Any]:
         current_key = result["Variable"]
         if current_key in required_keys:
             vehicle_details[current_key] = result["Value"]
-    return vehicle_details
+
+    return vehicle_details if any(vehicle_details.values()) else {}
 
 
 def structure_response(

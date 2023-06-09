@@ -49,8 +49,14 @@ def lookup_vehicle_details(request: Request) -> Dict[str, Any]:
         )
         vehicle_object = make_request(vin)
         vehicle_details = parse_response(vehicle_object)
-        cache.set(vin, vehicle_details)
 
+    if not vehicle_details:
+        raise HTTPException(
+            status_code=404,
+            detail=f"The API returned no valid values for the inputted vin: {vin}",
+        )
+    if not present_in_cache:
+        cache.set(vin, vehicle_details)
     vehicle_details = structure_response(vehicle_details, vin, present_in_cache)
     logger.info(f"Vehicle details for the vin {vin} are {vehicle_details}")
     return vehicle_details
@@ -112,7 +118,10 @@ def make_request(vin) -> Dict[str, Any]:
     """
     request_url = vpic_api_url.format(vin)
     try:
-        results = requests.get(request_url).json()["Results"]
+        result = requests.get(request_url)
+        if not result.status_code == 200:
+            raise HTTPException(status_code=result.status_code, detail=result)
+        results = result.json()["Results"]
     except Exception:
         logger.exception(
             "Encountered exception while making request to the vPIC API.",

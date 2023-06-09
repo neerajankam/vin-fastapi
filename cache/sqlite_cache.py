@@ -1,11 +1,12 @@
 import json
 import logging
 
+from cache.cache_interface import CacheInterface
 from database.connection import DatabaseConnection
 from models.database_models import Vin as VinDBModel
 
 
-class Cache:
+class Cache(CacheInterface):
     """
     Cache class for storing and retrieving vehicle details.
 
