@@ -77,15 +77,13 @@ class Cache(CacheInterface):
             deleted_rows = (
                 self.db_connection.query(VinDBModel).filter_by(vin=vin).delete()
             )
-            print("Deleted rows: {}".format(deleted_rows))
             self.db_connection.commit()
+            success = True if deleted_rows > 0 else False
         except Exception:
-            success = False
             logging.exception(
                 "Encountered exception while trying to delete vin.", extra={"vin": vin}
             )
             self.db_connection.rollback()
         finally:
             self.db_connection.close()
-            success = True if deleted_rows == 1 else False
             return success

@@ -12,6 +12,8 @@ def parse_response(vehicle_object: List[Dict[str, Any]]) -> Dict[str, Any]:
     :return: A dictionary containing the parsed vehicle details.
     :rtype: Dict[str, Any]
     """
+    if not vehicle_object:
+        return {}
     vehicle_details = dict()
     required_keys = {"Make", "Model", "Model Year", "Body Class"}
     for result in vehicle_object:

@@ -1,6 +1,7 @@
 import logging
 import os
 import requests
+from requests.exceptions import RequestException
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response
@@ -32,7 +33,7 @@ def lookup_vehicle_details(request: Request) -> Dict[str, Any]:
     :raises HTTPException 400: If the VIN is not a 17-character alphanumeric string.
     """
 
-    vin = request.query_params.get("vin")
+    vin = request.query_params.get("vin", "")
 
     if not len(vin) == 17 or not vin.isalnum():
         raise HTTPException(
@@ -72,7 +73,7 @@ def delete_vin_from_cache(request: Request) -> Dict[str, Any]:
     :rtype: dict
     :raises HTTPException 400: If the VIN is not a 17-character alphanumeric string.
     """
-    vin = request.query_params.get("vin")
+    vin = request.query_params.get("vin", "")
     if not len(vin) == 17 or not vin.isalnum():
         raise HTTPException(
             status_code=400,
@@ -95,6 +96,10 @@ def export_cache() -> Response:
     :rtype: Response
     """
     convert_database_to_parquet()
+    if not os.path.exists(vin_parquet_path):
+        raise FileNotFoundError(
+            f"Database parquet file not found at {vin_parquet_path}"
+        )
 
     with open(vin_parquet_path, "rb") as file:
         data = file.read()
@@ -118,16 +123,20 @@ def make_request(vin) -> Dict[str, Any]:
     :raises Exception: If an error occurs while making the request.
     """
     request_url = vpic_api_url.format(vin)
+
     try:
-        result = requests.get(request_url)
-        if not result.status_code == 200:
-            raise HTTPException(status_code=result.status_code, detail=result)
-        results = result.json()["Results"]
-    except Exception:
+        response = requests.get(request_url)
+    except RequestException:
         logger.exception(
             "Encountered exception while making request to the vPIC API.",
             extra={"url": request_url},
         )
+        return []
+
+    if not response.status_code == 200:
+        raise HTTPException(status_code=response.status_code, detail=response)
+    results = response.json()["Results"]
+
     return results
 
 
@@ -141,11 +150,16 @@ def convert_database_to_parquet() -> None:
     """
     database_engine = DatabaseConnection.get_engine()
     select_query = f"SELECT * FROM {vin_table_name}"
+
     try:
         vin_df = pd.read_sql_query(select_query, database_engine)
         vin_table = pa.Table.from_pandas(vin_df)
         pq.write_table(vin_table, vin_parquet_path)
     except Exception:
-        logger.exception(
+        raise DatabaseToParquetError(
             "Encountered exception while converting database to parquet file."
         )
+
+
+class DatabaseToParquetError(Exception):
+    pass
