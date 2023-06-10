@@ -24,7 +24,7 @@ app = FastAPI()
 def lookup_vehicle_details(request: Request) -> Dict[str, Any]:
     """
     Checks the cache for the given vin to see if the vehicle details are present.
-    If they aren't present, the vPIC API is queried to obtain the vehicle details.
+    If they aren't present, the vPIC API is queried to obtain the vehicle details and the result is cached.
 
     :param Request request: The FastAPI request object.
     :return: A dictionary containing the vehicle details.
@@ -114,6 +114,7 @@ def make_request(vin) -> Dict[str, Any]:
     :type vin: str
     :return: The response from the vPIC API as a dictionary.
     :rtype: Dict[str, Any]
+    :raises HTTPException: If the Api doesn't return a successful response.
     :raises Exception: If an error occurs while making the request.
     """
     request_url = vpic_api_url.format(vin)
