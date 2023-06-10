@@ -13,6 +13,13 @@ class Cache(CacheInterface):
     Provides methods to get, set, and delete vehicle details from the cache.
     """
 
+    __instance = None
+
+    def __new__(cls):
+        if cls.__instance is None:
+            cls.__instance = super(Cache, cls).__new__(cls)
+        return cls.__instance
+
     def __init__(self):
         self.db_connection = DatabaseConnection()
 
