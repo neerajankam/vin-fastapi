@@ -18,7 +18,7 @@ GET /lookup?{$vin}
 #### Delete vehicle details corresponding to VIN from cache
 
 ```http
-DELETE /remove/?{$vin}
+DELETE /remove?{$vin}
 ```
 
 | Parameter | Type     | Description                       |
