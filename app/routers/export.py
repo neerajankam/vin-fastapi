@@ -26,14 +26,24 @@ def export_cache() -> Response:
             f"Database parquet file not found at {vin_parquet_path}"
         )
 
-    with open(vin_parquet_path, "rb") as file:
-        data = file.read()
+    file_chunks = generate_file_chunks(vin_parquet_path)
+    content = b"".join(file_chunks)
+
     headers = {
         "Content-Type": "application/octet-stream",
         "Content-Disposition": f"attachment; filename={vin_parquet_name}",
     }
 
-    return Response(content=data, headers=headers)
+    return Response(content=content, headers=headers)
+
+
+def generate_file_chunks(file_path, chunk_size=4096):
+    with open(file_path, "rb") as file:
+        while True:
+            chunk = file.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
 
 
 def convert_database_to_parquet() -> None:

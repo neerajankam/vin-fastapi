@@ -71,11 +71,9 @@ def make_request(vin) -> Dict[str, Any]:
     try:
         response = requests.get(request_url)
     except RequestException:
-        logger.exception(
-            "Encountered exception while making request to the vPIC API.",
-            extra={"url": request_url},
+        raise RequestException(
+            "Encountered exception while making request to the vPIC API."
         )
-        return []
 
     if not response.status_code == 200:
         raise HTTPException(status_code=response.status_code, detail=response)

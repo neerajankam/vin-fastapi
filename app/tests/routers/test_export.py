@@ -55,15 +55,23 @@ def mock_parquet():
         yield mock_parquet
 
 
+@pytest.fixture
+def mock_generate():
+    with patch(module_path.format("generate_file_chunks")) as mock_generate:
+        yield mock_generate
+
+
 class TestExportCache:
-    def test_success(self, mock_convert_database, mocker, mock_response):
-        # Note that mocker fixture is provided by pytest-mock module.
-        mocker.patch("builtins.open", mocker.mock_open(read_data="Mocked content"))
+    def test_success(
+        self, mock_convert_database, mock_response, mock_generate, mock_os
+    ):
+        mock_os.path.exists.return_value = True
+        mock_generate.return_value = [b"random_string", b"random_string2"]
         result = export_cache()
         mock_convert_database.assert_called_once()
         assert result == mock_response.return_value
         mock_response.assert_called_once_with(
-            content="Mocked content",
+            content=b"random_stringrandom_string2",
             headers={
                 "Content-Type": "application/octet-stream",
                 "Content-Disposition": "attachment; filename=vin_cache.parquet",
