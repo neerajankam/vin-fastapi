@@ -98,7 +98,7 @@ uvicorn main:app --reload
 ├── log (Logging modules)
 │   ├── __init__.py
 │   └── logger.py
-├── models (Database models)
+├── models (Data models)
 │   ├── __init__.py
 │   ├── database_models.py
 │   └── parsing_models.py
