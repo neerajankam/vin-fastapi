@@ -1,7 +1,7 @@
 import json
 import logging
 
-from cache.cache_interface import CacheInterface
+from caching.cache_interface import CacheInterface
 from database.connection import DatabaseConnection
 from models.database_models import Vin as VinDBModel
 
@@ -94,3 +94,6 @@ class Cache(CacheInterface):
         finally:
             self.db_connection.close()
             return success
+
+
+cache = Cache()

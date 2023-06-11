@@ -33,12 +33,12 @@ class DatabaseConnection:
             cls.__instance = session()
         return cls.__instance
 
-    @staticmethod
-    def get_engine() -> "Engine":
+    @classmethod
+    def get_engine(cls) -> "Engine":
         """
         Retrieves the database engine.
 
         :return: The database engine.
         :rtype: Engine
         """
-        return DatabaseConnection.__engine
+        return cls.__engine

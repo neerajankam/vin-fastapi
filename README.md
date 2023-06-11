@@ -77,15 +77,21 @@ uvicorn main:app --reload
 ```
 ├── LICENSE
 ├── README.md
-├── app( App modules)
+├── app (Application modules)
 │   ├── config.py (App configuration)
-│   ├── main.py
-│   ├── tests (Unit tests)
+│   ├── main.py (App instance)
+│   ├── routers (Endpoint specific routers)
+│   │   ├── export.py
+│   │   ├── lookup.py
+│   │   └── remove.py
+│   ├── tests
 │   │   ├── __init__.py
-│   │   ├── conftest.py
-│   │   └── test_main.py
-│   └── utils.py (Helper functions)
-├── cache (Cache modules)
+│   │   └── routers
+│   │       ├── test_export.py
+│   │       ├── test_lookup.py
+│   │       └── test_remove.py
+│   └── utils.py
+├── caching (Caching modules)
 │   ├── __init__.py
 │   ├── cache_interface.py
 │   └── sqlite_cache.py
@@ -98,7 +104,7 @@ uvicorn main:app --reload
 ├── log (Logging modules)
 │   ├── __init__.py
 │   └── logger.py
-├── models (Data models)
+├── models (Database and applicationmodels)
 │   ├── __init__.py
 │   ├── database_models.py
 │   └── parsing_models.py
