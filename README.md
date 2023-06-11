@@ -1,6 +1,6 @@
 
-# VIN decoder
-A simple FastAPI backend to decode VINs, powered by the vPIC API and backed by a SQLite cache.
+# VIN(Vehicle Identification Number) decoder
+A simple FastAPI backend to decode VINs, powered by the [vPIC API](https://vpic.nhtsa.dot.gov/api/) and backed by a SQLite cache.
 
 
 ## API Endpoints
@@ -62,7 +62,7 @@ pip3 install -r requirements.txt
 ```
 4) Add the absolute path of the repository to the PYTHONPATH to ensure python can find the modules.
 ```
-export PYTHONPATH = <absolute-path-of-vin-fastapi-directory>
+export PYTHONPATH=<absolute-path-of-vin-fastapi-directory>
 ```
 5) Change to the app directory and launch the FastAPI app that is present in the main.py module using [uvicorn](https://www.uvicorn.org/). It is downloaded in Step 3 and you don't need to download it again.
 ```
