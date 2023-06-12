@@ -3,6 +3,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from database.database_interface import DatabaseInterface
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATABASE_NAME = "vins_database.db"
@@ -10,7 +11,7 @@ DATABASE_PATH = os.path.join(HERE, "..", "data")
 DATABASE_URL = f"sqlite:///{DATABASE_PATH}/{DATABASE_NAME}"
 
 
-class Database:
+class Database(DatabaseInterface):
     """
     Singleton class for the database engine.
 
