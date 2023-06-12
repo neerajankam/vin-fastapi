@@ -21,7 +21,7 @@ class Cache(CacheInterface):
         return cls.__instance
 
     def __init__(self):
-        self.db_engine = Database()
+        self.database = Database()
 
     def get(self, vin: str) -> dict:
         """
@@ -33,7 +33,7 @@ class Cache(CacheInterface):
         :rtype: dict
         """
         try:
-            db_session = self.db_engine.get_session()
+            db_session = self.database.get_session()
             vin_object = db_session.query(VinDBModel).filter_by(vin=vin).one_or_none()
             vin_object = json.loads(vin_object.vehicle_details) if vin_object else {}
         except Exception:
@@ -56,7 +56,7 @@ class Cache(CacheInterface):
         :type vehicle_details: dict
         """
         try:
-            db_session = self.db_engine.get_session()
+            db_session = self.database.get_session()
             vehicle_details = VinDBModel(
                 vin=vin, vehicle_details=json.dumps(vehicle_details)
             )
@@ -81,7 +81,7 @@ class Cache(CacheInterface):
         """
         success = False
         try:
-            db_session = self.db_engine.get_session()
+            db_session = self.database.get_session()
             deleted_rows = db_session.query(VinDBModel).filter_by(vin=vin).delete()
             db_session.commit()
             success = True if deleted_rows > 0 else False
