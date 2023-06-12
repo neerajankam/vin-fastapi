@@ -46,9 +46,9 @@ def mock_make_request():
 
 
 @pytest.fixture
-def mock_parse_response():
-    with patch(module_path.format("parse_response")) as mock_parse_response:
-        yield mock_parse_response
+def mock_build_response():
+    with patch(module_path.format("build_response")) as mock_build_response:
+        yield mock_build_response
 
 
 class TestLookUpVehicleDetails:
@@ -78,56 +78,38 @@ class TestLookUpVehicleDetails:
             == "VIN should be a 17 characters alpha-numeric string."
         )
 
-    def test_vin_in_cache(self, mock_cache, mock_request, mock_structure, mock_logger):
+    def test_vin_in_cache(self, mock_cache, mock_request, mock_logger):
         mock_request.query_params.get.return_value = self.valid_vin
         mock_cache.get.return_value = {"dummy_key": "dummy_val"}
         result = lookup_vehicle_details(mock_request)
 
-        assert result == mock_structure.return_value
+        assert result == {"dummy_key": "dummy_val", "Cached Result?": True}
 
         mock_cache.get.assert_called_once_with(self.valid_vin)
-        mock_structure.assert_called_once_with(
-            mock_cache.get.return_value,
-            mock_request.query_params.get.return_value,
-            True,
-        )
-        mock_logger.info.assert_called_once_with(
-            f"Vehicle details for the vin {self.valid_vin} are {mock_structure.return_value}"
-        )
 
     def test_vin_not_in_cache(
         self,
         mock_cache,
         mock_request,
-        mock_structure,
         mock_logger,
         mock_make_request,
-        mock_parse_response,
+        mock_build_response,
     ):
         mock_request.query_params.get.return_value = self.valid_vin
         mock_cache.get.return_value = None
         mock_make_request.return_value = {"dummy_key": "dummy_val"}
-        mock_parse_response.return_value = "parsed_response"
+        mock_build_response.return_value = {"new_key": "new_val"}
 
         result = lookup_vehicle_details(mock_request)
 
-        assert result == mock_structure.return_value
+        assert result == {"new_key": "new_val", "Cached Result?": False}
         mock_cache.get.assert_called_once_with(self.valid_vin)
         mock_make_request.assert_called_once_with(self.valid_vin)
-        mock_parse_response.assert_called_once_with(mock_make_request.return_value)
         mock_cache.set.assert_called_once_with(
-            self.valid_vin, mock_parse_response.return_value
-        )
-        mock_structure.assert_called_once_with(
-            mock_parse_response.return_value,
-            self.valid_vin,
-            False,
+            self.valid_vin, mock_build_response.return_value
         )
         mock_logger.debug.assert_any_call(
             f"No vehicle details present in the cache for {self.valid_vin}. Querying the vPIC API."
-        )
-        mock_logger.info.assert_any_call(
-            f"Vehicle details for the vin {self.valid_vin} are {mock_structure.return_value}"
         )
 
 

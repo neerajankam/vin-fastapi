@@ -4,7 +4,7 @@ from requests.exceptions import RequestException
 from fastapi import APIRouter, HTTPException, Request
 from typing import Any, Dict, List
 
-from app.utils import parse_response, structure_response
+from app.utils import build_response
 from caching.sqlite_cache import cache
 from app.config import vin_parquet_name, vin_table_name, vin_parquet_path, vpic_api_url
 from log.logger import logger
@@ -34,24 +34,24 @@ def lookup_vehicle_details(request: Request) -> Dict[str, Any]:
         )
 
     vehicle_details = cache.get(vin)
-    present_in_cache = bool(vehicle_details)
+    if vehicle_details:
+        vehicle_details["Cached Result?"] = True
+        return vehicle_details
 
-    if not vehicle_details:
-        logger.debug(
-            f"No vehicle details present in the cache for {vin}. Querying the vPIC API."
-        )
-        vehicle_object = make_request(vin)
-        vehicle_details = parse_response(vehicle_object)
+    logger.debug(
+        f"No vehicle details present in the cache for {vin}. Querying the vPIC API."
+    )
+    vehicle_object = make_request(vin)
+    vehicle_details = build_response(vehicle_object, vin)
 
     if not vehicle_details:
         raise HTTPException(
             status_code=404,
             detail=f"The API returned no valid values for the inputted vin: {vin}",
         )
-    if not present_in_cache:
-        cache.set(vin, vehicle_details)
-    vehicle_details = structure_response(vehicle_details, vin, present_in_cache)
-    logger.info(f"Vehicle details for the vin {vin} are {vehicle_details}")
+    cache.set(vin, vehicle_details)
+    vehicle_details["Cached Result?"] = False
+
     return vehicle_details
 
 
