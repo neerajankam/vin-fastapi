@@ -1,10 +1,9 @@
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
-from database.connection import DatabaseConnection
+from database.connection import Database
 
 
 Base = declarative_base()
-db_session = DatabaseConnection()
 
 
 class Vin(Base):
@@ -19,4 +18,4 @@ class Vin(Base):
 
 
 # Create the tables
-Base.metadata.create_all(bind=DatabaseConnection.get_engine())
+Base.metadata.create_all(bind=Database.get_engine())

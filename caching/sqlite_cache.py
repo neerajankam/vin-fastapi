@@ -2,7 +2,7 @@ import json
 import logging
 
 from caching.cache_interface import CacheInterface
-from database.connection import DatabaseConnection
+from database.connection import Database
 from models.database_models import Vin as VinDBModel
 
 
@@ -21,7 +21,7 @@ class Cache(CacheInterface):
         return cls.__instance
 
     def __init__(self):
-        self.db_connection = DatabaseConnection()
+        self.db_engine = Database()
 
     def get(self, vin: str) -> dict:
         """
@@ -33,9 +33,8 @@ class Cache(CacheInterface):
         :rtype: dict
         """
         try:
-            vin_object = (
-                self.db_connection.query(VinDBModel).filter_by(vin=vin).one_or_none()
-            )
+            db_session = self.db_engine.get_session()
+            vin_object = db_session.query(VinDBModel).filter_by(vin=vin).one_or_none()
             vin_object = json.loads(vin_object.vehicle_details) if vin_object else {}
         except Exception:
             logging.exception(
@@ -44,7 +43,7 @@ class Cache(CacheInterface):
             )
             vin_object = {}
         finally:
-            self.db_connection.close()
+            db_session.close()
         return vin_object
 
     def set(self, vin: str, vehicle_details: dict):
@@ -57,18 +56,19 @@ class Cache(CacheInterface):
         :type vehicle_details: dict
         """
         try:
+            db_session = self.db_engine.get_session()
             vehicle_details = VinDBModel(
                 vin=vin, vehicle_details=json.dumps(vehicle_details)
             )
-            self.db_connection.add(vehicle_details)
-            self.db_connection.commit()
+            db_session.add(vehicle_details)
+            db_session.commit()
         except Exception:
             logging.exception(
                 "Encountered exception while trying to cache vin.", extra={"vin": vin}
             )
-            self.db_connection.rollback()
+            db_session.rollback()
         finally:
-            self.db_connection.close()
+            db_session.close()
 
     def delete(self, vin: str) -> bool:
         """
@@ -81,18 +81,17 @@ class Cache(CacheInterface):
         """
         success = False
         try:
-            deleted_rows = (
-                self.db_connection.query(VinDBModel).filter_by(vin=vin).delete()
-            )
-            self.db_connection.commit()
+            db_session = self.db_engine.get_session()
+            deleted_rows = db_session.query(VinDBModel).filter_by(vin=vin).delete()
+            db_session.commit()
             success = True if deleted_rows > 0 else False
         except Exception:
             logging.exception(
                 "Encountered exception while trying to delete vin.", extra={"vin": vin}
             )
-            self.db_connection.rollback()
+            db_session.rollback()
         finally:
-            self.db_connection.close()
+            db_session.close()
             return success
 
 

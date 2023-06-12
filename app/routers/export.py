@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
 from app.config import vin_parquet_name, vin_table_name, vin_parquet_path
-from database.connection import DatabaseConnection
+from database.connection import Database
 
 
 router = APIRouter()
@@ -54,7 +54,7 @@ def convert_database_to_parquet() -> None:
 
     :rtype: None
     """
-    database_engine = DatabaseConnection.get_engine()
+    database_engine = Database.get_engine()
     select_query = f"SELECT * FROM {vin_table_name}"
 
     try:

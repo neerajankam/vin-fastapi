@@ -33,7 +33,7 @@ def mock_os():
 
 @pytest.fixture
 def mock_database_connection():
-    with patch(module_path.format("DatabaseConnection")) as mock_database_connection:
+    with patch(module_path.format("Database")) as mock_database_connection:
         yield mock_database_connection
 
 
