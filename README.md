@@ -100,6 +100,7 @@ uvicorn main:app --reload
 │   └── vins_database.db
 ├── database (Database modules)
 │   ├── __init__.py
+│   ├── config.py
 │   ├── connection.py
 │   └── database_interface.py
 ├── log (Logging modules)
