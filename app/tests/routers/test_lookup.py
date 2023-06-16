@@ -119,10 +119,11 @@ class TestMakeRequest:
 
     def test_exception_calling(self, mock_requests, mock_logger):
         mock_requests.get.side_effect = RequestException
-        with pytest.raises(RequestException) as request_exception:
+        with pytest.raises(HTTPException) as http_exception:
             make_request(self.valid_vin)
+        assert http_exception.value.status_code == 500
         assert (
-            str(request_exception.value)
+            http_exception.value.detail
             == "Encountered exception while making request to the vPIC API."
         )
 

@@ -38,3 +38,6 @@ class Database(DatabaseInterface):
         if cls.__engine is None:
             cls.__engine = create_engine(DATABASE_URL)
         return cls.__engine
+
+
+database = Database()

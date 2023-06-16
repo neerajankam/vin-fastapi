@@ -1,13 +1,11 @@
 import os
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
 from app.config import vin_parquet_name, vin_table_name, vin_parquet_path
 from database.connection import Database
-
+from log.logger import logger
 
 router = APIRouter()
 
@@ -20,10 +18,17 @@ def export_cache() -> Response:
     :return: The HTTP response containing the exported Parquet file.
     :rtype: Response
     """
-    convert_database_to_parquet()
+    try:
+        convert_database_to_parquet()
+    except DatabaseToParquetError as e:
+        logger.exception(
+            "Encountered exception while converting database to parquet file."
+        )
+        return Response(content=str(e), status_code=500)
+
     if not os.path.exists(vin_parquet_path):
-        raise FileNotFoundError(
-            f"Database parquet file not found at {vin_parquet_path}"
+        return Response(
+            content="Database parquet file has not been found", status_code=404
         )
 
     file_chunks = generate_file_chunks(vin_parquet_path)
@@ -59,8 +64,7 @@ def convert_database_to_parquet() -> None:
 
     try:
         vin_df = pd.read_sql_query(select_query, database_engine)
-        vin_table = pa.Table.from_pandas(vin_df)
-        pq.write_table(vin_table, vin_parquet_path)
+        vin_df.to_parquet(vin_parquet_path)
     except Exception:
         raise DatabaseToParquetError(
             "Encountered exception while converting database to parquet file."

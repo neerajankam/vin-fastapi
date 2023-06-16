@@ -1,7 +1,5 @@
 from typing import Any, Dict, List
 
-from models.parsing_models import VinResponse
-
 
 def build_response(vehicle_object: List[Dict[str, Any]], vin: str) -> Dict[str, Any]:
     """

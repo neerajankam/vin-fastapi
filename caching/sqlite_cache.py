@@ -2,7 +2,7 @@ import json
 import logging
 
 from caching.cache_interface import CacheInterface
-from database.connection import Database
+from database.connection import database
 from models.database_models import Vin as VinDBModel
 
 
@@ -15,13 +15,13 @@ class Cache(CacheInterface):
 
     __instance = None
 
-    def __new__(cls):
+    def __new__(cls, *args):
         if cls.__instance is None:
             cls.__instance = super(Cache, cls).__new__(cls)
         return cls.__instance
 
-    def __init__(self):
-        self.database = Database()
+    def __init__(self, database):
+        self.database = database
 
     def get(self, vin: str) -> dict:
         """
@@ -95,4 +95,4 @@ class Cache(CacheInterface):
             return success
 
 
-cache = Cache()
+cache = Cache(database)
