@@ -24,14 +24,14 @@ def export_cache() -> Response:
         logger.exception(
             "Encountered exception while converting database to parquet file."
         )
-        return Response(content=str(e), status_code=500)
-
-    if not os.path.exists(vin_parquet_path):
-        return Response(
-            content="Database parquet file has not been found", status_code=404
+        raise HTTPException(detail=str(e), status_code=500)
+    try:
+        file_chunks = generate_file_chunks(vin_parquet_path)
+    except FileNotFoundError:
+        logger.exception("Database parquet file has not been found.")
+        raise HTTPException(
+            detail="Database parquet file has not been found.", status_code=404
         )
-
-    file_chunks = generate_file_chunks(vin_parquet_path)
     content = b"".join(file_chunks)
 
     headers = {

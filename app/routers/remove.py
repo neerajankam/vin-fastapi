@@ -22,9 +22,7 @@ def delete_vin_from_cache(request: Request) -> Dict[str, Any]:
             status_code=400,
             detail="VIN should be a 17 characters alpha-numeric string.",
         )
-
     delete_successful = cache.delete(vin)
-
     response = {"Input VIN Requested": vin, "Cache Delete Success?": delete_successful}
 
     return response

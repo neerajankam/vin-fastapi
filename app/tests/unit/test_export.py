@@ -1,4 +1,5 @@
 import pytest
+from fastapi import HTTPException
 from unittest.mock import patch
 
 from app.routers.export import (
@@ -72,25 +73,28 @@ class TestExportCache:
             },
         )
 
-    def test_no_parquet_path(self, mock_os, mock_response):
-        mock_os.path.exists.return_value = False
-        result = export_cache()
-        assert result == mock_response.return_value
-        mock_response.assert_called_once_with(
-            content="Database parquet file has not been found", status_code=404
+    def test_no_parquet_path(self, mock_generate):
+        with pytest.raises(HTTPException) as not_found_error:
+            mock_generate.side_effect = FileNotFoundError
+            result = export_cache()
+        assert (
+            str(not_found_error.value.detail)
+            == "Database parquet file has not been found."
         )
+        assert not_found_error.value.status_code == 404
 
     def test_database_to_parquet_error(self, mock_logger, mock_response, mock_pandas):
-        mock_pandas.read_sql_query.side_effect = Exception
-        result = export_cache()
+        with pytest.raises(HTTPException) as conversion_error:
+            mock_pandas.read_sql_query.side_effect = DatabaseToParquetError
+            result = export_cache()
         mock_logger.exception.assert_called_once_with(
             "Encountered exception while converting database to parquet file."
         )
-        assert result == mock_response.return_value
-        mock_response.assert_called_once_with(
-            content="Encountered exception while converting database to parquet file.",
-            status_code=500,
+        assert (
+            str(conversion_error.value.detail)
+            == "Encountered exception while converting database to parquet file."
         )
+        assert conversion_error.value.status_code == 500
 
 
 class TestConvertDatabaseToParquet:
