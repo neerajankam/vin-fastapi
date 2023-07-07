@@ -1,3 +1,4 @@
+from aiohttp import ClientError, ClientResponseError
 import pytest
 from fastapi import HTTPException
 from unittest.mock import patch
@@ -22,9 +23,15 @@ def mock_request():
 
 
 @pytest.fixture
-def mock_requests():
-    with patch(module_path.format("requests")) as mock_requests:
-        yield mock_requests
+def mock_response():
+    with patch(module_path.format("Response")) as mock_response:
+        yield mock_response
+
+
+@pytest.fixture
+def mock_session():
+    with patch(module_path.format("aiohttp.ClientSession")) as mock_session:
+        yield mock_session
 
 
 @pytest.fixture
@@ -55,10 +62,10 @@ class TestLookUpVehicleDetails:
     def setup_class(self):
         self.valid_vin = "1XP5DB9X7YN526158"
 
-    def test_vin_less_than_17_chars(self, mock_request):
+    async def test_vin_less_than_17_chars(self, mock_request):
         with pytest.raises(HTTPException) as http_exception:
             mock_request.query_params.get.return_value = "dummy_vin"
-            lookup_vehicle_details(mock_request)
+            await lookup_vehicle_details(mock_request)
 
         assert http_exception.value.status_code == 400
         assert (
@@ -66,10 +73,10 @@ class TestLookUpVehicleDetails:
             == "VIN should be a 17 characters alpha-numeric string."
         )
 
-    def test_vin_not_alnum(self, mock_request):
+    async def test_vin_not_alnum(self, mock_request):
         with pytest.raises(HTTPException) as http_exception:
             mock_request.query_params.get.return_value = "-----------------"
-            lookup_vehicle_details(mock_request)
+            await lookup_vehicle_details(mock_request)
 
         assert http_exception.value.status_code == 400
         assert len(mock_request.query_params.get.return_value) == 17
@@ -78,16 +85,16 @@ class TestLookUpVehicleDetails:
             == "VIN should be a 17 characters alpha-numeric string."
         )
 
-    def test_vin_in_cache(self, mock_cache, mock_request, mock_logger):
+    async def test_vin_in_cache(self, mock_cache, mock_request, mock_logger):
         mock_request.query_params.get.return_value = self.valid_vin
         mock_cache.get.return_value = {"dummy_key": "dummy_val"}
-        result = lookup_vehicle_details(mock_request)
+        result = await lookup_vehicle_details(mock_request)
 
         assert result == {"dummy_key": "dummy_val", "Cached Result?": True}
 
         mock_cache.get.assert_called_once_with(self.valid_vin)
 
-    def test_vin_not_in_cache(
+    async def test_vin_not_in_cache(
         self,
         mock_cache,
         mock_request,
@@ -100,7 +107,7 @@ class TestLookUpVehicleDetails:
         mock_make_request.return_value = {"dummy_key": "dummy_val"}
         mock_build_response.return_value = {"new_key": "new_val"}
 
-        result = lookup_vehicle_details(mock_request)
+        result = await lookup_vehicle_details(mock_request)
 
         assert result == {"new_key": "new_val", "Cached Result?": False}
         mock_cache.get.assert_called_once_with(self.valid_vin)
@@ -117,28 +124,45 @@ class TestMakeRequest:
     def setup_class(self):
         self.valid_vin = "1XP5DB9X7YN526158"
 
-    def test_exception_calling(self, mock_requests, mock_logger):
-        mock_requests.get.side_effect = RequestException
-        with pytest.raises(HTTPException) as http_exception:
-            make_request(self.valid_vin)
-        assert http_exception.value.status_code == 500
-        assert (
-            http_exception.value.detail
-            == "Encountered exception while making request to the vPIC API."
+    async def test_client_response_error(
+        self, mock_session, mock_logger, mock_response
+    ):
+        mock_session.return_value.__aenter__.return_value.get.side_effect = (
+            ClientResponseError
+        )
+        result = await make_request(self.valid_vin)
+        assert result == mock_response.return_value
+        mock_response.assert_called_once_with(
+            content=str(
+                "'coroutine' object does not support the asynchronous context manager protocol"
+            ),
+            status_code=500,
         )
 
-    def test_status_code_not_200(self, mock_requests):
-        with pytest.raises(HTTPException) as http_exception:
-            mock_requests.get.return_value.status_code = 400
-            make_request(self.valid_vin)
+    async def test_client_error(self, mock_session, mock_logger, mock_response):
+        mock_session.return_value.__aenter__.return_value.get.side_effect = ClientError
+        result = await make_request(self.valid_vin)
+        assert result == mock_response.return_value
+        mock_response.assert_called_once_with(
+            content=str(
+                "'coroutine' object does not support the asynchronous context manager protocol"
+            ),
+            status_code=500,
+        )
+        mock_logger.exception.assert_called_once_with(
+            "Encountered exception while making request to https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/1XP5DB9X7YN526158?format=json"
+        )
 
-        assert http_exception.value.status_code == 400
-        assert http_exception.value.detail == mock_requests.get.return_value
-
-    def test_status_code_200(self, mock_requests, mock_logger):
-        mock_requests.get.return_value.status_code = 200
-        mock_requests.get.return_value.json.return_value = {"Results": ["dummy_result"]}
-        result = make_request(self.valid_vin)
-        mock_logger.exception.assert_not_called()
-        mock_requests.get.return_value.json.assert_called_once()
-        assert result == ["dummy_result"]
+    async def test_exception(self, mock_session, mock_logger, mock_response):
+        mock_session.return_value.__aenter__.return_value.get.side_effect = Exception
+        result = await make_request(self.valid_vin)
+        assert result == mock_response.return_value
+        mock_response.assert_called_once_with(
+            content=str(
+                "'coroutine' object does not support the asynchronous context manager protocol"
+            ),
+            status_code=500,
+        )
+        mock_logger.exception.assert_called_once_with(
+            "Encountered exception while making request to https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/1XP5DB9X7YN526158?format=json"
+        )

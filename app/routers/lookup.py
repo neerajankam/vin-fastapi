@@ -1,7 +1,10 @@
 import requests
 from requests.exceptions import RequestException
 
+import aiohttp
+from aiohttp import ClientError, ClientResponseError
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import Response
 from typing import Any, Dict, List
 
 from app.utils import build_response
@@ -14,7 +17,7 @@ router = APIRouter()
 
 
 @router.get("/lookup")
-def lookup_vehicle_details(request: Request) -> Dict[str, Any]:
+async def lookup_vehicle_details(request: Request) -> Dict[str, Any]:
     """
     Checks the cache for the given vin to see if the vehicle details are present.
     If they aren't present, the vPIC API is queried to obtain the vehicle details and the result is cached.
@@ -26,7 +29,6 @@ def lookup_vehicle_details(request: Request) -> Dict[str, Any]:
     """
 
     vin = request.query_params.get("vin", "")
-
     if not len(vin) == 17 or not vin.isalnum():
         raise HTTPException(
             status_code=400,
@@ -41,7 +43,7 @@ def lookup_vehicle_details(request: Request) -> Dict[str, Any]:
     logger.debug(
         f"No vehicle details present in the cache for {vin}. Querying the vPIC API."
     )
-    vehicle_object = make_request(vin)
+    vehicle_object = await make_request(vin)
     vehicle_details = build_response(vehicle_object, vin)
 
     if not vehicle_details:
@@ -55,29 +57,32 @@ def lookup_vehicle_details(request: Request) -> Dict[str, Any]:
     return vehicle_details
 
 
-def make_request(vin) -> Dict[str, Any]:
+async def make_request(vin: str) -> Dict[str, Any]:
     """
-    Make a request to the vPIC API with the given vin and returns the response.
+    Makes an HTTP GET request to the vPIC API with the given VIN (Vehicle Identification Number).
 
     :param vin: The VIN (Vehicle Identification Number) for the vehicle.
     :type vin: str
     :return: The response from the vPIC API as a dictionary.
     :rtype: Dict[str, Any]
-    :raises HTTPException: If the Api doesn't return a successful response.
-    :raises Exception: If an error occurs while making the request.
+    :raises ClientResponseError: If an error occurs during the request.
+    :raises ClientError: If an error occurs during the request.
+    :raises Exception: If an exception occurs during the request.
     """
-    request_url = vpic_api_url.format(vin)
-
+    url = vpic_api_url.format(vin)
     try:
-        response = requests.get(request_url)
-    except RequestException:
-        raise HTTPException(
-            status_code=500,
-            detail="Encountered exception while making request to the vPIC API.",
-        )
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                response_json = await response.json()
+                response.raise_for_status()
 
-    if not response.status_code == 200:
-        raise HTTPException(status_code=response.status_code, detail=response)
-    results = response.json()["Results"]
-
-    return results
+        response_json = await response.json()
+        return response_json["Results"]
+    except ClientResponseError as e:
+        return Response(content=str(e), status_code=response.status)
+    except ClientError as e:
+        logger.exception(f"Error while making the request to {url}")
+        return Response(content=str(e), status_code=response.status)
+    except Exception as e:
+        logger.exception(f"Encountered exception while making request to {url}")
+        return Response(content=str(e), status_code=500)

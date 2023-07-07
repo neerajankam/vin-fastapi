@@ -32,13 +32,13 @@ def export_cache() -> Response:
         raise HTTPException(
             detail="Database parquet file has not been found.", status_code=404
         )
+
     content = b"".join(file_chunks)
 
     headers = {
         "Content-Type": "application/octet-stream",
         "Content-Disposition": f"attachment; filename={vin_parquet_name}",
     }
-
     return Response(content=content, headers=headers)
 
 
